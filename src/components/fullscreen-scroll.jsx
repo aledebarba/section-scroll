@@ -26,11 +26,17 @@ export default function FullScreenScroll({ children, options={}, className="", o
 
     useEffect( () => {
         const keyDown = (e) => {
+            e.preventDefault();
+            e.stopImmediatePropagation();
             if( e.key === "ArrowDown" ) {
-                scrollIfPossible({ direction: [0, 1] });
+                console.log( "down" )
+                scrollIfPossible({ direction: [0, 1], dragging: false });
+                waitScrollEnding()
             }
             if( e.key === "ArrowUp" ) {
-                scrollIfPossible({ direction: [0, -1] });
+                console.log( "up" )
+                scrollIfPossible({ direction: [0, -1], dragging: false });
+                waitScrollEnding()
             }
         }
         window.addEventListener( "keydown", keyDown );
@@ -96,8 +102,10 @@ export default function FullScreenScroll({ children, options={}, className="", o
     }
 
     function scrollIfPossible( state ) {
+
         scrollAttempts.current += 1;
         if ( scrollAttempts.current !== 1 ) return;
+
         if ( state.direction[1] === 0 && !state.dragging ) {
             scrollAttempts.current = 0;
             return
