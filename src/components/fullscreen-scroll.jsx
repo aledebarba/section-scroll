@@ -1,4 +1,4 @@
-"use client"
+//"use client"
 import { gsap } from "gsap";
 import { useGesture } from '@use-gesture/react'
 import { ScrollToPlugin } from 'gsap/all';
@@ -116,9 +116,10 @@ export default function FullScreenScroll({ children, options={}, className="", o
 
         if( isScrolling.current ) return false;
         if( scrollAttempts.current > 1 ) return false;
-        const targets = gsap.utils.toArray( "*[snapconfig]" );
 
         const ctx = gsap.context((self) => {
+
+            const targets = gsap.utils.toArray( "*[snapconfig]" );
             const visiblePage = targets.findIndex( ( target ) => target.getAttribute("data-visibility") === "visible" );
             cPage( cPage() !== visiblePage ? visiblePage : cPage() );
 
@@ -133,25 +134,40 @@ export default function FullScreenScroll({ children, options={}, className="", o
             if ( targets[ nextPage ] === undefined ) return;
             if ( nextPage ===  cPage() ) return;
 
-            const duration = direction === 1 ? scrollOptions[ cPage()]?.duration || 0.5 : scrollOptions[nextPage]?.duration || 0.5;
-            const ease = direction === 1 ? scrollOptions[  cPage() ]?.ease || "power0" : scrollOptions[ nextPage ]?.ease || "power0";
+            const duration  = direction === 1 ? scrollOptions[ cPage()]?.duration || 0.5 : scrollOptions[nextPage]?.duration || 0.5;
+            const ease      = direction === 1 ? scrollOptions[ cPage() ]?.ease || "power0" : scrollOptions[ nextPage ]?.ease || "power0";
+            const startCallback = scrollOptions[ nextPage ]?.onEnter || function(){ return null };
+            const completeCallback = scrollOptions[ nextPage ]?.onComplete || function(){ return null };
+            const leaveCallback = scrollOptions[ cPage() ]?.onLeave || function(){ return null };
+
+            console.log( scrollOptions );
+
             scrollPosition.current = [0 , targets[ nextPage ].offsetTop ];
             // TODO: remove body and html scroll-behaviour smooth
             gsap.to( window, {
                 duration: duration,
                 scrollTo: targets[ nextPage ].offsetTop,
-                ease: "power4.inOut",
+                ease: ease,
                 onCompleteParams: [nextPage, wait],
                 onUpdateParams: [nextPage],
+                onStartParams: [ startCallback, leaveCallback ],
                 onComplete: onComplete,
                 onUpdate: onUpdate,
+                onStart: onStart,
                 overwrite: "auto",
             });
+
+            function onStart( startCallback, leaveCallback ) {
+                startCallback();
+                leaveCallback();
+            }
+
             function onComplete( nextPage, wait ) {
                 setTimeout( () => {
                     isScrolling.current = false;
                     cPage( nextPage );
                     scrollPosition.current = [0 , targets[ nextPage ].offsetTop ];
+                    completeCallback();
                     // TODO: restore body and html scroll-behaviour smooth
                 }, wait * 1000 )
             }
