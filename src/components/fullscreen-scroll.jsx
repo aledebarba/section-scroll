@@ -1,33 +1,61 @@
 "use client"
-import { useGesture } from '@use-gesture/react'
-import { useCallback, useEffect, useRef, useState } from 'react'
 import { gsap } from "gsap";
+import { useGesture } from '@use-gesture/react'
 import { ScrollToPlugin } from 'gsap/all';
-gsap.registerPlugin(ScrollToPlugin);
+import { useIntersectionObserver } from "@uidotdev/usehooks";
+import { useCallback, useEffect, useRef } from 'react'
 
-export default function FullScreenScroller({ children, options={}, className="", otherProps }) {
+// register gsap plugin if is front-end
+if (typeof window !== "undefined") {
+    gsap.registerPlugin(ScrollToPlugin);
+}
 
-    const scrollAttempts = useRef(0);
+export default function FullScreenScroll({ children, options={}, className="", otherProps }) {
+
+    const mainRef = useRef(null);
     const currentPage = useRef(0);
+    const scrollAttempts = useRef(0);
+    const isScrolling = useRef(false);
+    const scrollPosition = useRef([0,0]);
 
     const cPage = useCallback( ( page ) => {
         if( page === undefined ) return currentPage.current;
         currentPage.current = page;
-        console.log(  "current page: ", currentPage.current );
     }, [currentPage] );
 
 
-    const isScrolling = useRef(false);
-    const mainRef = useRef(null);
+    useEffect( () => {
+        const keyDown = (e) => {
+            if( e.key === "ArrowDown" ) {
+                scrollIfPossible({ direction: [0, 1] });
+            }
+            if( e.key === "ArrowUp" ) {
+                scrollIfPossible({ direction: [0, -1] });
+            }
+        }
+        window.addEventListener( "keydown", keyDown );
 
-    const childRef = useRef( new Array() );
+        const onScroll = (e) => {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            window.scrollTo( ...scrollPosition.current );
+        }
+        window.addEventListener( "scroll", onScroll, { passive: false } );
 
-    const markers = options.markers || false;
-    const [ markerInfo, setMarketInfo ] = useState( "" );
+        const onMouseDown = (e) => {
+            e.preventDefault();
+        }
+        window.addEventListener( "mousedown", onMouseDown, { passive: false } );
+
+        return () => {
+            window.removeEventListener( "keydown", keyDown );
+            window.removeEventListener( "scroll", onScroll );
+            window.removeEventListener( "mousedown", onMouseDown );
+        }
+    }, [] )
 
     useGesture({
         onWheel: (state) => {
-            console.log( state.direction, state.down )
             scrollIfPossible(state);
         },
         onWheelEnd: (state) => {
@@ -39,7 +67,6 @@ export default function FullScreenScroller({ children, options={}, className="",
         onDragEnd: (state) => {
             waitScrollEnding(state);
         }
-
     },
         {
             target: mainRef,
@@ -53,7 +80,8 @@ export default function FullScreenScroller({ children, options={}, className="",
             drag: {
                 preventDefault: true,
                 enabled: true,
-                threshold: 0.2,
+                threshold: 10,
+                axis: "y",
             }
         }
     )
@@ -68,7 +96,6 @@ export default function FullScreenScroller({ children, options={}, className="",
     }
 
     function scrollIfPossible( state ) {
-
         scrollAttempts.current += 1;
         if ( scrollAttempts.current !== 1 ) return;
         if ( state.direction[1] === 0 && !state.dragging ) {
@@ -81,29 +108,31 @@ export default function FullScreenScroller({ children, options={}, className="",
 
         if( isScrolling.current ) return false;
         if( scrollAttempts.current > 1 ) return false;
+        const targets = gsap.utils.toArray( "*[snapconfig]" );
 
         const ctx = gsap.context((self) => {
-            const scrollOptions = children.map( ( child ) => child.props.snapconfig || {} );
-            const targets = gsap.utils.toArray( "*[snapconfig]" )
-            const maxPage = targets.length - 1;
+            const visiblePage = targets.findIndex( ( target ) => target.getAttribute("data-visibility") === "visible" );
+            cPage( cPage() !== visiblePage ? visiblePage : cPage() );
 
+            const scrollOptions = children.map( ( child ) => child.props.snapconfig || {} );
+            const maxPage = targets.length - 1;
             const nextPage =  cPage() + direction >= maxPage
                 ? maxPage
                 :  cPage() + direction < 0
                     ? 0
                     :  cPage() + direction;
             const wait = scrollOptions[ nextPage ]?.wait || 0.2;
-
-
             if ( targets[ nextPage ] === undefined ) return;
             if ( nextPage ===  cPage() ) return;
 
-            const duration = direction === 1 ? scrollOptions[ cPage()]?.duration || 0.25 : scrollOptions[nextPage]?.duration || 0.25;
+            const duration = direction === 1 ? scrollOptions[ cPage()]?.duration || 0.5 : scrollOptions[nextPage]?.duration || 0.5;
             const ease = direction === 1 ? scrollOptions[  cPage() ]?.ease || "power0" : scrollOptions[ nextPage ]?.ease || "power0";
+            scrollPosition.current = [0 , targets[ nextPage ].offsetTop ];
+            // TODO: remove body and html scroll-behaviour smooth
             gsap.to( window, {
                 duration: duration,
                 scrollTo: targets[ nextPage ].offsetTop,
-                ease: ease,
+                ease: "power4.inOut",
                 onCompleteParams: [nextPage, wait],
                 onUpdateParams: [nextPage],
                 onComplete: onComplete,
@@ -114,6 +143,8 @@ export default function FullScreenScroller({ children, options={}, className="",
                 setTimeout( () => {
                     isScrolling.current = false;
                     cPage( nextPage );
+                    scrollPosition.current = [0 , targets[ nextPage ].offsetTop ];
+                    // TODO: restore body and html scroll-behaviour smooth
                 }, wait * 1000 )
             }
             function onUpdate( nextPage ) {
@@ -125,21 +156,35 @@ export default function FullScreenScroller({ children, options={}, className="",
         }, mainRef )
     }
 
-
     return (<>
-        <div className={ className } {...otherProps} ref={ mainRef } style={{ touchAction: "none" }}>
+        <div className={ className } {...otherProps} ref={ mainRef } style={{ touchAction: "none" }} >
             { children }
         </div>
         </>
     )
 }
 
-export function SnapSection({ children, ...otherProps }) {
+export const Section = ( props ) => {
+
+    const [ observerRef, entry ] = useIntersectionObserver({
+        threshold: 0.85,
+        root: null,
+        rootMargin: "0px",
+    });
+    const { children, snapconfig={}, ...otherProps } = props;
+
+    useEffect( () => {
+        console.log( snapconfig )
+    }, [observerRef] )
+
     return (
         <section
+            ref={ observerRef }
+            data-visibility={ entry?.isIntersecting ? "visible" : "hidden" }
+            snapconfig={ snapconfig }
             {...otherProps}
         >
-            {children}
+            { props.children }
         </section>
     )
 }
