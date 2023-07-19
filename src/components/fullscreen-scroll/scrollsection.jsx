@@ -1,14 +1,15 @@
+"use client";
 import { gsap } from "gsap";
 import { useGesture } from '@use-gesture/react'
 import { ScrollToPlugin } from 'gsap/all';
-import { useCallback, useEffect, useRef, createContext, useContext } from 'react'
+import { useCallback, useEffect, useRef, createContext, useState, useLayoutEffect } from 'react'
 
 // register gsap plugin if is front-end
 if (typeof window !== "undefined") {
     gsap.registerPlugin(ScrollToPlugin);
 }
 
-const FullScreenScrollContext = createContext(null);
+export const FullScreenScrollContext = createContext(null);
 
 export function FullScreenScroll({ children, options={}, className="", style, otherProps }) {
 
@@ -18,17 +19,26 @@ export function FullScreenScroll({ children, options={}, className="", style, ot
     const isScrolling     = useRef(false);
     const scrollPosition  = useRef([0,0]);
     const scrollSectionsOptions  = useRef();
+    const scrollTarget = useRef({ target: null, duration: 0, active: false });
+    const sectionsSelector = "*[snapconfig]";
 
     const cPage = useCallback( ( page ) => {
         if( page === undefined ) return currentPage.current;
         currentPage.current = page;
     }, [currentPage] );
 
+    const [ context, setContext ] = useState({
+        currentPage: cPage(),
+        scrollToTarget: handleScrollToTarget,
+        mainRef: mainRef,
+    })
+
 
     useEffect( () => {
-
+        // observe events
         scrollSectionsOptions.current = children.map( ( child ) => child.props.snapconfig || {} );
 
+        // scroll to next / prev on key press
         const keyDown = (e) => {
             e.preventDefault();
             e.stopImmediatePropagation();
@@ -41,19 +51,24 @@ export function FullScreenScroll({ children, options={}, className="", style, ot
                 waitScrollEnding()
             }
         }
-        window.addEventListener( "keydown", keyDown );
 
+        // prevent scrolling via scroll bar
         const onScroll = (e) => {
             e.preventDefault();
             e.stopImmediatePropagation();
+            if( scrollTarget.current.active ) return;
+
+            //if scrolling was triggered, restore to original position
             window.scrollTo( ...scrollPosition.current );
         }
 
-        window.addEventListener( "scroll", onScroll, { passive: false } );
-
         const onMouseDown = (e) => {
+            // prevent scrolling via scroll bar
             e.preventDefault();
         }
+
+        window.addEventListener( "keydown", keyDown );
+        window.addEventListener( "scroll", onScroll, { passive: false } );
         window.addEventListener( "mousedown", onMouseDown, { passive: false } );
 
         return () => {
@@ -105,6 +120,7 @@ export function FullScreenScroll({ children, options={}, className="", style, ot
     }
 
     function scrollIfPossible( state ) {
+
         scrollAttempts.current += 1;
         if ( scrollAttempts.current !== 1 ) return;
         if ( state.direction[1] === 0 && !state.dragging ) {
@@ -145,6 +161,7 @@ export function FullScreenScroll({ children, options={}, className="", style, ot
             const leaveCallback     = scrollOptions[ cPage()  ]?.onLeave || function(){ return null };
 
             scrollPosition.current = [0 , targets[ nextPage ].offsetTop ];
+
             // TODO: remove body and html scroll-behaviour smooth
 
             gsap.to( window, {
@@ -161,6 +178,8 @@ export function FullScreenScroll({ children, options={}, className="", style, ot
             });
 
             function onStart( startCallback, leaveCallback ) {
+                // update the context
+                setContext( { ...context, currentPage: nextPage })
                 if( scrollSectionsOptions.current[ nextPage ]?.once == "done" ) return;
                 if( scrollSectionsOptions.current[ nextPage ]?.once == true ) {
                     scrollSectionsOptions.current[ nextPage ].once = "done";
@@ -189,10 +208,71 @@ export function FullScreenScroll({ children, options={}, className="", style, ot
         }, mainRef )
     }
 
-    return (<FullScreenScrollContext.Provider value={{ currentPage: currentPage.current }}>
+    function scrollToTop( duration, ease ) {
+        const docLenght = document.body.scrollHeight;
+        const screens = Math.floor( docLenght / window.innerHeight );
+        const durationPerScreen = duration ? duration * screens : 0.5 * screens;
+        gsap.to( window, {
+            duration: durationPerScreen,
+            scrollTo: 0,
+            ease: ease || "ease.inOut",
+            onComplete: onComplete
+        });
+
+        function onComplete() {
+            scrollPosition.current = [0,0];
+            scrollTarget.current.active = false;
+            currentPage.current = 0;
+            cPage(0);
+        }
+    }
+
+    function handleScrollToTarget( target, duration, ease ){
+
+        if( target === "top" ) {
+            scrollToTop( duration, ease )
+            return;
+        };
+
+        const ctx = gsap.context((self)=>{
+
+            const targets = gsap.utils.toArray( sectionsSelector );
+            const targetIndex = targets.findIndex( ( e ) => e.getAttribute("data-target") === target );
+
+            if( targets === undefined || targetIndex === undefined ) return;
+
+            const targetElement = targets[ targetIndex ];
+            const distance = Math.abs( targetElement.offsetTop - window.scrollY );
+            const screens = Math.floor( distance / window.innerHeight );
+            const durationPerScreen = duration ? duration * screens : 0.5 * screens;
+
+            gsap.to( window, {
+                duration: durationPerScreen,
+                scrollTo: targetElement.offsetTop,
+                ease: ease || "ease.inOut",
+                onCompleteParams: [ targetIndex, targetElement ],
+                onComplete: onComplete
+            });
+
+            function onComplete( targetIndex, targetElement ){
+                    scrollPosition.current = [0,targetElement.offsetTop];
+                    scrollTarget.current.active = false;
+                    currentPage.current = targetIndex;
+                    cPage( targetIndex );
+            }
+
+            return ()=>self.kill();
+        }, mainRef);
+
+    }
+
+
+
+    return (<FullScreenScrollContext.Provider value={context}>
         <div className={ className } {...otherProps} ref={ mainRef } style={{ ...style, touchAction: "none" }} >
             { children }
         </div>
-        </FullScreenScrollContext.Provider>
+    </FullScreenScrollContext.Provider>
     )
 }
+

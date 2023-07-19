@@ -1,8 +1,11 @@
-import React from "react";
+"use client";
+import React, { useCallback, useContext, useEffect, useRef } from "react";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-
+import { FullScreenScrollContext } from "./scrollsection";
 
 export const Section = ( props ) => {
+
+    const context = useContext( FullScreenScrollContext );
 
     const [ observerRef, entry ] = useIntersectionObserver({
         threshold: 0.85,
@@ -15,7 +18,6 @@ export const Section = ( props ) => {
     const handleNext = (e) => {
         window.dispatchEvent( new KeyboardEvent("keydown", {key:"ArrowDown"}) );
     }
-
     const handlePrev = () => {
         window.dispatchEvent( new KeyboardEvent("keydown", {key:"ArrowUp"}) );
     }
@@ -24,6 +26,8 @@ export const Section = ( props ) => {
             <section
                 ref={ observerRef }
                 data-visibility={ entry?.isIntersecting ? "visible" : "hidden" }
+                data-target={ snapconfig?.target }
+                data-section={ true }
                 snapconfig={ snapconfig }
                 {...otherProps}
                 style={{ ...props.style, position: "relative" }}
