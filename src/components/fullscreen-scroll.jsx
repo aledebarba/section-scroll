@@ -1,5 +1,5 @@
 //"use client"
-import { gsap } from "gsap";
+import { gsap, snap } from "gsap";
 import { useGesture } from '@use-gesture/react'
 import { ScrollToPlugin } from 'gsap/all';
 import { useIntersectionObserver } from "@uidotdev/usehooks";
@@ -12,11 +12,12 @@ if (typeof window !== "undefined") {
 
 export default function FullScreenScroll({ children, options={}, className="", otherProps }) {
 
-    const mainRef = useRef(null);
-    const currentPage = useRef(0);
-    const scrollAttempts = useRef(0);
-    const isScrolling = useRef(false);
-    const scrollPosition = useRef([0,0]);
+    const mainRef         = useRef(null);
+    const currentPage     = useRef(0);
+    const scrollAttempts  = useRef(0);
+    const isScrolling     = useRef(false);
+    const scrollPosition  = useRef([0,0]);
+    const scrollSectionsOptions  = useRef();
 
     const cPage = useCallback( ( page ) => {
         if( page === undefined ) return currentPage.current;
@@ -25,6 +26,9 @@ export default function FullScreenScroll({ children, options={}, className="", o
 
 
     useEffect( () => {
+
+        scrollSectionsOptions.current = children.map( ( child ) => child.props.snapconfig || {} );
+
         const keyDown = (e) => {
             e.preventDefault();
             e.stopImmediatePropagation();
@@ -46,6 +50,7 @@ export default function FullScreenScroll({ children, options={}, className="", o
             e.stopImmediatePropagation();
             window.scrollTo( ...scrollPosition.current );
         }
+
         window.addEventListener( "scroll", onScroll, { passive: false } );
 
         const onMouseDown = (e) => {
@@ -92,7 +97,7 @@ export default function FullScreenScroll({ children, options={}, className="", o
         }
     )
 
-    function waitScrollEnding( state ) {
+    function waitScrollEnding() {
         const waitUntilScrollStop = setInterval( () => {
             if( !isScrolling.current ) {
                 clearInterval(waitUntilScrollStop);
@@ -102,18 +107,14 @@ export default function FullScreenScroll({ children, options={}, className="", o
     }
 
     function scrollIfPossible( state ) {
-
         scrollAttempts.current += 1;
         if ( scrollAttempts.current !== 1 ) return;
-
         if ( state.direction[1] === 0 && !state.dragging ) {
             scrollAttempts.current = 0;
             return
         };
-
         let direction = state.direction[1] === 1 ? 1 : -1;
-        direction = state.dragging ? direction * -1 : direction;
-
+            direction = state.dragging ? direction * -1 : direction;
         if( isScrolling.current ) return false;
         if( scrollAttempts.current > 1 ) return false;
 
@@ -123,33 +124,37 @@ export default function FullScreenScroll({ children, options={}, className="", o
             const visiblePage = targets.findIndex( ( target ) => target.getAttribute("data-visibility") === "visible" );
             cPage( cPage() !== visiblePage ? visiblePage : cPage() );
 
-            const scrollOptions = children.map( ( child ) => child.props.snapconfig || {} );
+            const scrollOptions = scrollSectionsOptions.current;
             const maxPage = targets.length - 1;
             const nextPage =  cPage() + direction >= maxPage
                 ? maxPage
                 :  cPage() + direction < 0
                     ? 0
                     :  cPage() + direction;
-            const wait = scrollOptions[ nextPage ]?.wait || 0.2;
+            const wait = scrollOptions[ nextPage ]?.wait
+                            ?  scrollOptions[ nextPage ]?.once == "done"
+                                ? 0.2 //default waiting time;
+                                : scrollOptions[ nextPage ]?.wait
+                            : 0.2 //default waiting time;
+
             if ( targets[ nextPage ] === undefined ) return;
             if ( nextPage ===  cPage() ) return;
 
             const duration  = direction === 1 ? scrollOptions[ cPage()]?.duration || 0.5 : scrollOptions[nextPage]?.duration || 0.5;
             const ease      = direction === 1 ? scrollOptions[ cPage() ]?.ease || "power0" : scrollOptions[ nextPage ]?.ease || "power0";
-            const startCallback = scrollOptions[ nextPage ]?.onEnter || function(){ return null };
-            const completeCallback = scrollOptions[ nextPage ]?.onComplete || function(){ return null };
-            const leaveCallback = scrollOptions[ cPage() ]?.onLeave || function(){ return null };
-
-            console.log( scrollOptions );
+            const startCallback     = scrollOptions[ nextPage ]?.onEnter || function(){ return null };
+            const completeCallback  = scrollOptions[ nextPage ]?.onComplete || function(){ return null };
+            const leaveCallback     = scrollOptions[ cPage()  ]?.onLeave || function(){ return null };
 
             scrollPosition.current = [0 , targets[ nextPage ].offsetTop ];
             // TODO: remove body and html scroll-behaviour smooth
+
             gsap.to( window, {
                 duration: duration,
                 scrollTo: targets[ nextPage ].offsetTop,
                 ease: ease,
-                onCompleteParams: [nextPage, wait],
-                onUpdateParams: [nextPage],
+                onCompleteParams: [ nextPage, wait ],
+                onUpdateParams: [ nextPage ],
                 onStartParams: [ startCallback, leaveCallback ],
                 onComplete: onComplete,
                 onUpdate: onUpdate,
@@ -158,17 +163,23 @@ export default function FullScreenScroll({ children, options={}, className="", o
             });
 
             function onStart( startCallback, leaveCallback ) {
+                if( scrollSectionsOptions.current[ nextPage ]?.once == "done" ) return;
+                if( scrollSectionsOptions.current[ nextPage ]?.once == true ) {
+                    scrollSectionsOptions.current[ nextPage ].once = "done";
+                }
                 startCallback();
                 leaveCallback();
             }
 
             function onComplete( nextPage, wait ) {
+
                 setTimeout( () => {
                     isScrolling.current = false;
                     cPage( nextPage );
                     scrollPosition.current = [0 , targets[ nextPage ].offsetTop ];
                     completeCallback();
                     // TODO: restore body and html scroll-behaviour smooth
+
                 }, wait * 1000 )
             }
             function onUpdate( nextPage ) {
@@ -196,10 +207,6 @@ export const Section = ( props ) => {
         rootMargin: "0px",
     });
     const { children, snapconfig={}, ...otherProps } = props;
-
-    useEffect( () => {
-        console.log( snapconfig )
-    }, [observerRef] )
 
     return (
         <section
