@@ -1,43 +1,21 @@
 "use client"
-import FullScreenScroll, { Section } from "@/components/fullscreen-scroll";
+import { FullScreenScroll, Section, Link } from "@/components/fullscreen-scroll";
 import { useRef, useEffect, useState } from "react";
-import { useCounter } from "../components/useCounter";
+import { useCounter } from "@/components/usecounter";
 
 export default function Home() {
-
-  const countFrom = 5;
-
-  const [ t, startTimer ] = useState( false );
-  const timer = useRef(countFrom);
-  const [ countdown, setCountdown ] = useState();
 
   const k1 = useCounter({
     from: 0,
     to: 5,
     interval: 1000
   });
-
   const k2 = useCounter();
+  const sectionHeight = (typeof window != "undefined") ? window.innerHeight : "100vh";
 
-  useEffect(() => {
-    if( t ) {
-      const countdown = setInterval(() => {
-        if( timer.current <= 0 ) {
-          clearInterval(countdown);
-          startTimer(false);
-          timer.current = countFrom;
-          return;
-        }
-        timer.current--
-        setCountdown(timer.current)
-      }, 1000);
-      return () => clearInterval(countdown);
-    }
-  }, [t] )
-
-  return (
+   return (
     <FullScreenScroll className="w-screen overflow-x-hidden" >
-      <Section className="relative grid w-screen h-screen bg-slate-400 place-content-center">
+      <Section className="relative grid w-screen bg-slate-400 place-content-center" style={{ height: sectionHeight }}>
         <h1 className="text-4xl text-black">Start Page</h1>
         <Configuration>
           <Info title="Duration" value="default" />
@@ -47,7 +25,8 @@ export default function Home() {
       </Section>
 
       <Section
-        className="relative grid w-screen h-screen p-10 bg-blue-700 place-content-center"
+        className="relative grid w-screen p-10 bg-blue-700 place-content-center"
+        style={{ height: window.innerHeight }}
         snapconfig={{
           duration: 1.5,
           ease: "circ.*",
@@ -62,7 +41,9 @@ export default function Home() {
           <Info title="Duration" value="1.5" />
           <Info title="Ease" value="circ.*" />
           <Info title="Pause/Wait" value="default" />
+          <Info title="Next / Prev" value="optional components" />
         </Configuration>
+
       </Section>
 
       <Section

@@ -1,16 +1,16 @@
-//"use client"
-import { gsap, snap } from "gsap";
+import { gsap } from "gsap";
 import { useGesture } from '@use-gesture/react'
 import { ScrollToPlugin } from 'gsap/all';
-import { useIntersectionObserver } from "@uidotdev/usehooks";
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, createContext, useContext } from 'react'
 
 // register gsap plugin if is front-end
 if (typeof window !== "undefined") {
     gsap.registerPlugin(ScrollToPlugin);
 }
 
-export default function FullScreenScroll({ children, options={}, className="", otherProps }) {
+const FullScreenScrollContext = createContext(null);
+
+export function FullScreenScroll({ children, options={}, className="", style, otherProps }) {
 
     const mainRef         = useRef(null);
     const currentPage     = useRef(0);
@@ -189,46 +189,10 @@ export default function FullScreenScroll({ children, options={}, className="", o
         }, mainRef )
     }
 
-    return (<>
-        <div className={ className } {...otherProps} ref={ mainRef } style={{ touchAction: "none" }} >
+    return (<FullScreenScrollContext.Provider value={{ currentPage: currentPage.current }}>
+        <div className={ className } {...otherProps} ref={ mainRef } style={{ ...style, touchAction: "none" }} >
             { children }
         </div>
-        </>
-    )
-}
-
-export const Section = ( props ) => {
-
-    const nextRef = useRef(null);
-
-    const [ observerRef, entry ] = useIntersectionObserver({
-        threshold: 0.85,
-        root: null,
-        rootMargin: "0px",
-    });
-    const { children, snapconfig={}, ...otherProps } = props;
-
-    const handleNext = (e) => {
-        window.dispatchEvent( new KeyboardEvent("keydown", {key:"ArrowDown"}) );
-    }
-
-    const handlePrev = () => {
-        window.dispatchEvent( new KeyboardEvent("keydown", {key:"ArrowUp"}) );
-    }
-
-
-
-    return (
-        <section
-            ref={ observerRef }
-            data-visibility={ entry?.isIntersecting ? "visible" : "hidden" }
-            snapconfig={ snapconfig }
-            {...otherProps}
-            style={{ ...props.style, position: "relative" }}
-        >
-            { props.children }
-            { snapconfig?.Next && <div  onClick={ handleNext }><snapconfig.Next /></div> }
-            { snapconfig?.Prev && <div  onClick={ handlePrev }><snapconfig.Prev /></div> }
-        </section>
+        </FullScreenScrollContext.Provider>
     )
 }
