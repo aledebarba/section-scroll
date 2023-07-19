@@ -47,17 +47,17 @@ export default function Home() {
       </Section>
 
       <Section
-        className="relative grid w-screen h-screen p-10 place-content-center bg-gradient-to-b from-red-400 to-lime-500"
+        className="relative grid w-screen h-screen p-10 bg-blue-700 place-content-center"
         snapconfig={{
           duration: 1.5,
           ease: "circ.*",
-          Next: ()=><span>NEXT</span>,
-          Prev: ()=><span>PREV</span>
+          Next: ()=><span className="absolute grid w-auto h-8 px-10 py-5 transform -translate-x-1/2 rounded-lg cursor-pointer left-1/2 place-content-center bottom-10 hover:bg-black">NEXT</span>,
+          Prev: ()=><span className="absolute grid w-auto h-8 px-10 py-5 transform -translate-x-1/2 rounded-lg cursor-pointer left-1/2 place-content-center top-10 hover:bg-black">PREV</span>
         }}
 
         >
-        <h1 className="text-black text-8xl">SECTION 2</h1>
-        <h2 className="text-center text-black">Show next and previous links</h2>
+        <h1 className="font-serif text-4xl text-white lg:text-6xl">Section <span className="text-8xl">2</span></h1>
+        <h2 className="text-center text-white">Show next and previous links</h2>
         <Configuration>
           <Info title="Duration" value="1.5" />
           <Info title="Ease" value="circ.*" />
@@ -103,10 +103,25 @@ export default function Home() {
           onEnter: function(){ k2.start(5) },
         }}
         >
-        <h1 className="text-4xl text-black">This section will pause scrolling for 5 seconds</h1>
+        <h1 className="transform -translate-y-20 text-2xl text-center text-black md:text-3xl lg:text-6xl w-10/12 w-max-[640px] m-auto">
+          This section will <strong>always</strong> pause scrolling for 5 seconds
+        </h1>
 
-        { k2.isCounting && <h1 className="text-center text-black text-9xl">{ k2.value }</h1> }
-        { k2.ended && <h1 className="text-center text-black text-9xl">Go!</h1> }
+        {
+          k2.isCounting &&
+          <div className="absolute transform -translate-x-1/2 left-1/2 bottom-32">
+            <h1 className="font-mono text-2xl text-center text-black md:text-4xl lg:text-8xl">
+              00:{ k2.value>10 ? k2.value : "0"+k2.value  }
+            </h1>
+            <div className="h-5 m-auto bg-pink-300 rounded-full" style={{ width: `${k2.value*8}vw` }}></div>
+          </div>
+        }
+        {
+          k2.ended &&
+          <h1 className="absolute grid w-48 h-48 p-5 m-auto mt-8 text-6xl font-bold text-center text-white transform -translate-x-1/2 bg-green-500 rounded-full left-1/2 bottom-32 place-content-center">
+              GO
+          </h1>
+        }
 
         <Configuration>
           <Info title="Duration" value="1" />
@@ -117,7 +132,7 @@ export default function Home() {
       </Section>
 
       <Section
-        className={ t
+        className={ k1.isCounting
             && "relative grid w-screen h-screen transition-colors duration-500 bg-red-500 place-content-center "
             || "relative grid w-screen h-screen transition-colors duration-500 bg-blue-300 place-content-center "
           }
@@ -130,11 +145,27 @@ export default function Home() {
           onEnter: function(){ k1.start() },
         }}
         >
-        <h1 className="text-4xl text-black">This section will pause scrolling for 5 seconds, but only once</h1>
+          <div className="absolute transform -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2">
+            {
+              k1.isCounting || !k1.ended
+                ? <div className="w-auto max-w-2xl">
+                  <h1 className="m-auto text-lg text-center text-black md:text-2xl lg:text-6xl">
+                    This section will pause scrolling for 5 seconds
+                  </h1>
+                  <h1 className="font-mono text-2xl text-center text-black md:text-4xl lg:text-8xl">
+                    00:{ k1.value>10 ? k1.value : "0"+k1.value  }
+                  </h1>
 
-        { k1.isCounting && <h1 className="text-center text-black text-9xl">{ k1.value }</h1> }
-        { k1.ended && <h1 className="text-center text-black text-9xl">Go!</h1> }
-
+                </div>
+                : k1.ended
+                  ? <div className="w-auto max-w-2xl">
+                    <h1 className="m-auto text-lg text-center text-black md:text-2xl lg:text-4xl">
+                      This section was stopped for 5 seconds at first render, but now it will not stop anymore.
+                    </h1>
+                  </div>
+                  : <></>
+            }
+          </div>
         <Configuration>
           <Info title="Duration" value="2" />
           <Info title="Ease" value="back.inOut(1.7)" />

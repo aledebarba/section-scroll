@@ -33,12 +33,10 @@ export default function FullScreenScroll({ children, options={}, className="", o
             e.preventDefault();
             e.stopImmediatePropagation();
             if( e.key === "ArrowDown" ) {
-                console.log( "down" )
                 scrollIfPossible({ direction: [0, 1], dragging: false });
                 waitScrollEnding()
             }
             if( e.key === "ArrowUp" ) {
-                console.log( "up" )
                 scrollIfPossible({ direction: [0, -1], dragging: false });
                 waitScrollEnding()
             }
@@ -201,6 +199,8 @@ export default function FullScreenScroll({ children, options={}, className="", o
 
 export const Section = ( props ) => {
 
+    const nextRef = useRef(null);
+
     const [ observerRef, entry ] = useIntersectionObserver({
         threshold: 0.85,
         root: null,
@@ -208,14 +208,27 @@ export const Section = ( props ) => {
     });
     const { children, snapconfig={}, ...otherProps } = props;
 
+    const handleNext = (e) => {
+        window.dispatchEvent( new KeyboardEvent("keydown", {key:"ArrowDown"}) );
+    }
+
+    const handlePrev = () => {
+        window.dispatchEvent( new KeyboardEvent("keydown", {key:"ArrowUp"}) );
+    }
+
+
+
     return (
         <section
             ref={ observerRef }
             data-visibility={ entry?.isIntersecting ? "visible" : "hidden" }
             snapconfig={ snapconfig }
             {...otherProps}
+            style={{ ...props.style, position: "relative" }}
         >
             { props.children }
+            { snapconfig?.Next && <div  onClick={ handleNext }><snapconfig.Next /></div> }
+            { snapconfig?.Prev && <div  onClick={ handlePrev }><snapconfig.Prev /></div> }
         </section>
     )
 }
