@@ -1,11 +1,7 @@
 "use client"
-import Header from '../components/SectionsContent/Header';
-import { Icon } from '@iconify/react';
-import { Carousel } from "@/components/carousel";
+import { FullScreenScroll, Section, Link, HorizontalScroll, HoSection } from "@/components/fullscreen-scroll";
 import { useCounter } from "@/components/usecounter";
-import { getItemsFromAPI } from "../components/SectionsContent/getItemsFromAPI";
-import { showDots, showDashes } from "@/components/carousel/controllergallery";
-import { FullScreenScroll, Section, Link } from "@/components/fullscreen-scroll";
+import { useRef, useEffect } from "react";
 
 export default function Home() {
 
@@ -15,40 +11,39 @@ export default function Home() {
     interval: 1000
   });
   const k2 = useCounter();
+  const hsection = useRef(null);
 
    return (
     <FullScreenScroll className="w-screen overflow-x-hidden" >
 
-      <Section className="relative grid w-screen h-screen place-content-center">
-        <Header />
-      </Section>
+       <HorizontalScroll
 
-      <Section className="relative grid w-screen h-screen bg-stone-900 place-conten-center shadow-[inset_0vw_0vw_150px_-10px_#0004]">
-          <Carousel
-            autoplay={true}
-            interval={6000}
-            loop={true}
-            pauseOnHover={false}
-            className="absolute w-[85vw] h-[85vh] rounded-3xl overflow-hidden transform -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 shadow-2xl shadow-black/50"
+          options={{
+            snap: true,
+            snapSpeed: 1,
+            mousewheel: false,
+            loop: true,
+            autoPlay: true,
+            autoPlaySpeed: 5000,
+            Next: ()=><span>Next</span>,
+            Prev: ()=><span>Prev</span>,
+          }}
+        >
+          <HoSection className="relative grid w-screen h-screen place-content-center bg-gradient-to-b from-red-400 to-lime-500">
+            <h1 className="text-6xl text-black">Horizontal Section 1</h1>
+          </HoSection>
+          <HoSection className="relative grid w-screen h-screen place-content-center bg-gradient-to-b from-blue-500 to-purple-500">
+            <h1 className="text-6xl text-white">Horizontal Section 4</h1>
+          </HoSection>
+          <HoSection className="relative grid w-screen h-screen text-black bg-amber-200 place-content-center">
+            <div className="absolute top-0 left-0 flex flex-col items-center justify-center w-full h-full">
+              <h1 className="text-6xl ">Horizontal Section 6</h1>
+              <p className="text-lg ">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+            </div>
+          </HoSection>
 
-            items={ getItemsFromAPI() }
+       </HorizontalScroll>
 
-            Next={()=><button
-              className="absolute z-10 text-4xl text-white transform -translate-y-1/2 lg:text-5xl top-1/2 right-8 hover:text-amber-500"
-              >
-              <Icon icon="typcn:chevron-right" />
-            </button>}
-
-            Prev={()=><button
-              className="absolute z-10 text-4xl text-white transform -translate-y-1/2 lg:text-5xl top-1/2 left-8 hover:text-amber-500"
-              >
-              <Icon icon="typcn:chevron-left" />
-            </button> }
-
-            controller={ showDots() }
-
-          />
-      </Section>
       <Section
         className="relative grid w-screen h-screen p-10 bg-blue-700 place-content-center"
 
@@ -366,5 +361,3 @@ function IconToTop(props) {
     </svg>
   );
 }
-
-

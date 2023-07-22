@@ -78,20 +78,21 @@ export function FullScreenScroll({ children, options={}, className="", style, ot
         }
     }, [] )
 
-    useGesture({
-        onWheel: (state) => {
-            scrollIfPossible(state);
+    useGesture(
+        {
+            onWheel: (state) => {
+                scrollIfPossible(state);
+            },
+            onWheelEnd: (state) => {
+                waitScrollEnding(state);
+            },
+            onDrag: (state) => {
+                scrollIfPossible( state  );
+            },
+            onDragEnd: (state) => {
+                waitScrollEnding(state);
+            }
         },
-        onWheelEnd: (state) => {
-            waitScrollEnding(state);
-        },
-        onDrag: (state) => {
-            scrollIfPossible( state  );
-        },
-        onDragEnd: (state) => {
-            waitScrollEnding(state);
-        }
-    },
         {
             target: mainRef,
             eventOptions: {
@@ -104,8 +105,9 @@ export function FullScreenScroll({ children, options={}, className="", style, ot
             drag: {
                 preventDefault: true,
                 enabled: true,
-                threshold: 10,
+                threshold: 50,
                 axis: "y",
+                filterTaps: true,
             }
         }
     )
@@ -199,9 +201,11 @@ export function FullScreenScroll({ children, options={}, className="", style, ot
 
                 }, wait * 1000 )
             }
+
             function onUpdate( nextPage ) {
                 isScrolling.current = true;
             }
+
             return () => {
                 self.kill();
             }
