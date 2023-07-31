@@ -1,23 +1,138 @@
 "use client";
 import { Icon } from '@iconify/react';
+import { gsap } from 'gsap';
+import React, { useEffect, useRef } from "react";
+import { state } from "./state";
 
-export const SlideDefault = ( { item, activeItem, props } ) => {
-    const active = item.id === activeItem.id;
-    return (<>
-        <div className="relative flex flex-col items-center justify-center w-full h-full p-24 transition-all duration-700 bg-black bg-center bg-cover rounded-lg gap-y-6"
-        style={{
-            transform: active ? "scale(1)" : "scale(0.5)",
-            backgroundImage: `url(${item.image})`
-        }}>
-            <p className={`text-6xl md:text-8xl lg:text-9xl whitespace-nowrap text-white ${active?"inFromTop":"fadeOut"}` }>{item.title}</p>
-            <div className={ `flex flex-col w-full p-8 rounded-md text-md bg-neutral-900/30 backdrop-blur-md translate-y-[10%] ${active ? "flickUp" : "" } `}>
-                <p className="pb-2 font-bold text-white border-b-2 border-b-white border-b-solid">{item.text.intro}</p>
-                <p className="pt-2 text-white">{item.text.content}</p>
+
+const Slide = ( { item, slideRef, titleRef, introRef, contentRef, iconRef } ) => (
+    <>
+        <div className="absolute inset-0 bg-black bg-center bg-cover rounded-lg place-content-center gap-y-6"
+             style={{ backgroundImage: `url(${item.image})` }}
+             ref={slideRef}
+             data-id="slide-container"
+
+            >
+           <div data-id="slide-content"
+                className="absolute inset-0 flex flex-col items-center justify-end p-2 mb-32 md:justify-center md:mb-0"
+                >
+                <p ref={ titleRef }
+                    className="w-10/12 mx-auto text-[clamp(32px,calc(6vw+1rem),80px)] text-center text-white h-fit md:text-8xl lg:text-9xl"
+                    >
+                    {item.title}
+                </p>
+                <div  ref={ contentRef }
+                    className="flex flex-col w-[clamp(300px,65vw,960px)] p-8 rounded-lg text-md bg-neutral-900/30 backdrop-blur-md"
+                >
+                <p ref={ introRef }
+                    className="pb-2 font-bold text-white border-b-2 md:visible border-b-white border-b-solid"
+                    >
+                    {item.text.intro}
+                </p>
+
+                <p ref={ contentRef }
+                    className="hidden pt-2 text-white md:block"
+                    >
+                    {item.text.content}
+                </p>
             </div>
-            <Icon icon={item.icon} className={`grid w-24 h-24 p-4 text-4xl text-white rounded-full bg-black/40 place-content-center ${active ? "zoomBounceIn" : "" }`} />
+            <div ref={ iconRef }>
+                <Icon
+                    icon={item.icon}
+                    className="grid w-24 h-24 p-4 text-4xl text-white rounded-full bg-black/40 place-content-center"
+                />
+            </div>
+        </div>
         </div>
         </>
-      )
+)
+
+export const SlideTest = ( { item } ) => {
+    return (
+            <div className="absolute inset-0 grid bg-black bg-center bg-cover rounded-lg place-content-center gap-y-6"
+             style={{ backgroundImage: `url(${item.image})` }}
+             data-id="slide-container"
+            >
+              <div data-id="slide-content" data-title>
+                { item.title }
+              </div>
+            </div>
+    )}
+
+export const SlideDefault = ( { item, index }  ) => {
+
+    const
+        slideRef = useRef(null),
+        titleRef = useRef(null),
+        introRef = useRef(null),
+        contentRef = useRef(null),
+        contentRef1 = useRef(null),
+        iconRef = useRef(null)
+
+        state.onStart.onChange( (v) => {
+
+            let { onStart } = state.onStart.get();
+            console.log( v.value[ state.index.get() ] , index+1 )
+            console.log( state.onStart.get()[index+1 ] )
+            const compare = state.onStart.get()[index+1] == state.index.get();
+            if ( compare ) {
+                handleOnStart();
+            }
+        })
+
+
+    function handleOnStart() {
+            if( slideRef.current ) {
+
+                const tl=gsap.timeline()
+                    .to( contentRef1.current, { opacity: 1, duration: 1, ease: "power2.out" }, -1 )
+                    .from( titleRef.current, { delay: 0.5, duration: 0.5, y: -150, opacity: 0, ease: "power2.out" }, 0 )
+                    .from( contentRef.current, { duration: 0.5, y: 150, opacity: 0, ease: "power2.out" }, ">" )
+                    .from( iconRef.current, { duration: 1, scale: 0, opacity: 0, ease: "bounce.out" }, 1.5 )
+            }
+        }
+
+
+    return <>
+            <div className="absolute inset-0 bg-black bg-center bg-cover rounded-lg place-content-center gap-y-6"
+             style={{ backgroundImage: `url(${item.image})` }}
+             ref={ slideRef }
+             data-id="slide-container"
+            >
+           <div data-id="slide-content"
+                ref={ contentRef1 }
+                className="absolute inset-0 flex flex-col items-center justify-end p-2 mb-32 opacity-0 md:justify-center md:mb-0"
+                >
+                <p ref={ titleRef }
+                    data-title
+                    className="w-10/12 mx-auto text-[clamp(32px,calc(6vw+1rem),80px)] text-center text-white h-fit md:text-8xl lg:text-9xl"
+                    >
+                    {item.title}
+                </p>
+                <div  ref={ contentRef }
+                    className="flex flex-col w-[clamp(300px,65vw,960px)] p-8 rounded-lg text-md bg-neutral-900/30 backdrop-blur-md"
+                >
+                <p ref={ introRef }
+                    className="pb-2 font-bold text-white border-b-2 md:visible border-b-white border-b-solid"
+                    >
+                    {item.text.intro}
+                </p>
+
+                <p ref={ contentRef }
+                    className="hidden pt-2 text-white md:block"
+                    >
+                    {item.text.content}
+                </p>
+            </div>
+            <div ref={ iconRef }>
+                <Icon
+                    icon={item.icon}
+                    className="grid w-24 h-24 p-4 text-4xl text-white rounded-full bg-black/40 place-content-center"
+                />
+            </div>
+        </div>
+        </div>
+    </>
 }
 
 export const SlideHero = ( { item, activeItem, imagepos, props } ) => {

@@ -1,11 +1,15 @@
 "use client"
 import Header from '../components/SectionsContent/Header';
 import { Icon } from '@iconify/react';
-import { Carousel } from "@/components/carousel";
-import { useCounter } from "@/components/usecounter";
+import { useCounter } from "../components/usecounter";
 import { getItemsFromAPI } from "../components/SectionsContent/getItemsFromAPI";
-import { showDots, showDashes } from "@/components/carousel/controllergallery";
-import { FullScreenScroll, Section, Link } from "@/components/fullscreen-scroll";
+import { FullScreenScroll, Section, Link } from "../components/fullscreen-scroll";
+import { SlideDefault as Slide } from "../components/carousel";
+import { Scroller, state } from "../components/carousel";
+//import { slideTest } from '../components/carousel/slideslayouts';
+
+
+
 
 export default function Home() {
 
@@ -24,34 +28,49 @@ export default function Home() {
       </Section>
 
       <Section className="relative grid w-screen h-screen bg-stone-900 place-conten-center shadow-[inset_0vw_0vw_150px_-10px_#0004]">
-          <Carousel
-            autoplay={true}
-            interval={6000}
-            loop={true}
-            pauseOnHover={false}
-            className="absolute w-[85vw] h-[85vh] rounded-3xl overflow-hidden transform -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 shadow-2xl shadow-black/50"
+          <Scroller
+            className="absolute w-screen h-screen md:w-[85vw] md:h-[85vh] md:rounded-3xl overflow-hidden transform -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2 shadow-2xl shadow-black/50"
+            autoplay={true} interval={6000} loop={true} pauseOnHover={false} items={ getItemsFromAPI() }
+            Next={()=><button className="absolute z-10 text-4xl text-white transform md:-translate-y-1/2 lg:text-5xl top-[90vh] md:top-1/2 right-2 md:right-8 hover:text-amber-500">
+                        <Icon icon="typcn:chevron-right" />
+                      </button>}
+            Prev={()=><button className="absolute z-10 text-4xl text-white transform md:-translate-y-1/2 lg:text-5xl top-[90vh] md:top-1/2 left-2 md:left-8 hover:text-amber-500">
+                        <Icon icon="typcn:chevron-left" />
+                      </button>}
+            Nav={( { items, goto } )=>{
+              return(
+              <div className="absolute z-10 flex h-20 gap-2 -translate-x-1/2 bottom-2 left-1/2">
+                  { items.map( ( item, index ) =>
+                  <div key={`dot-navigation-item-${index}`}
+                    data-active={index===state.index.get()}
+                    className="grid flex-grow-0 flex-shrink-0 w-6 h-6 bg-red-500 rounded-full cursor-pointer hover:bg-pink-200 place-content-center data-[active]:bg-sky-800"
+                    onClick={()=>{ goto(index+1) }}
+                  >
+                    {index+1}
+                  </div>)}
+              </div> )}}
+          >
 
-            items={ getItemsFromAPI() }
-
-            Next={()=><button
-              className="absolute z-10 text-4xl text-white transform -translate-y-1/2 lg:text-5xl top-1/2 right-8 hover:text-amber-500"
-              >
-              <Icon icon="typcn:chevron-right" />
-            </button>}
-
-            Prev={()=><button
-              className="absolute z-10 text-4xl text-white transform -translate-y-1/2 lg:text-5xl top-1/2 left-8 hover:text-amber-500"
-              >
-              <Icon icon="typcn:chevron-left" />
-            </button> }
-
-            controller={ showDots() }
-
-          />
+              { getItemsFromAPI().map( (item, index) => { return(
+                  <Slide
+                      key={`item-key-${index}`}
+                      item={item}
+                      onStart={ function( ref ) {
+                        const animation = gsap.context( ()=>{
+                          const tl = gsap.timeline();
+                          tl.fromTo( "[data-title]", { opacity: 0}, {opacity: 1, delay: 0.5, duration: 0.5 } )
+                        }, ref )
+                      }}
+                      onComplete={ () => { console.log("on complete from slide default") }}
+                      onLeave={  () =>  { console.log( "on leave form slide default")  }}
+                      transition = { { animateInParams: { }, onGoto:{} } }
+                      index= {index}
+                  /> )})}
+          </Scroller>
       </Section>
+
       <Section
         className="relative grid w-screen h-screen p-10 bg-blue-700 place-content-center"
-
         snapconfig={{
           duration: 1.5,
           ease: "circ.*",
