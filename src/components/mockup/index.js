@@ -1,0 +1,1 @@
+export { getItemsFromAPI } from "./getItemsFromAPI.js";

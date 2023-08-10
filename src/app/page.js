@@ -6,7 +6,6 @@ import { getItemsFromAPI } from "../components/SectionsContent/getItemsFromAPI";
 import { FullScreenScroll, Section, Link } from "../components/fullscreen-scroll";
 import { SlideDefault as Slide } from "../components/carousel";
 import { Scroller, state } from "../components/carousel";
-//import { slideTest } from '../components/carousel/slideslayouts';
 
 
 

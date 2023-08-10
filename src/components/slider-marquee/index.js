@@ -1,0 +1,1 @@
+export { SliderMarquee } from './slider-marquee.jsx';

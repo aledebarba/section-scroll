@@ -1,4 +1,3 @@
-import { gsap } from "gsap";
 import { observable, computed } from "@legendapp/state";
 
 export const state = observable({
@@ -23,9 +22,6 @@ export const state = observable({
     onStart: [],
     itemStatus:[],
     cachedItems: [],
-    setStatus: ( index, value ) => { state.itemStatus[index].set(
-        { index: index, state: value }
-    )},
     timer: {
         count: 0,
         increment: 1000,

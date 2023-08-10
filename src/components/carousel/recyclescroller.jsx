@@ -2,20 +2,17 @@
 import { useLayoutEffect, useRef, Children, cloneElement  } from "react";
 import { observe  } from "@legendapp/state";
 import { SlideDefault } from "./slideslayouts";
-import { useGesture } from '@use-gesture/react'
 import { defaultUi } from "./ui";
 import { state } from "./state";
 import { gsap } from "gsap";
-import { Memo } from "@legendapp/state/react"
 
-export const Scroller = ({
+export const RecycleScroller = ({
     items=[],
     autoplay = true, interval = 5000, increment = 1000, tick = 1000, display = 1, startItem,
     loop = true, pauseOnHover = false,
     Next = Next || defaultUi.Next,
     Prev = Prev || defaultUi.Prev,
     Nav  = Nav || defaultUi.Nav,
-    Goto = <></>,
     Layout = SlideDefault,
     children,
     ...otherprops }) => {

@@ -30,3 +30,23 @@ body {
     )
     rgb(var(--background-start-rgb));
 }
+
+  .custom-scroll-bar {
+    scrollbar-width: thin;
+    scrollbar-color: #de66ff #a57dbf;
+  }
+
+  /* Chrome, Edge, and Safari */
+  .custom-scroll-bar::-webkit-scrollbar {
+    width: 16px;
+  }
+
+  .custom-scroll-bar::-webkit-scrollbar-track {
+    background: #a57dbf;
+  }
+
+  .custom-scroll-bar::-webkit-scrollbar-thumb {
+    background-color: #de66ff;
+    border-radius: 10px;
+    border: 3px solid #1de203;
+  }

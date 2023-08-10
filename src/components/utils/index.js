@@ -1,1 +1,1 @@
-export { SpyWindow } from "./spy";
+export { Telemetry, logger } from "./telemetry.tsx";
