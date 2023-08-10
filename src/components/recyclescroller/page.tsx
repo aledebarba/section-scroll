@@ -1,5 +1,5 @@
 "use client"
-import { SlideDefault, state } from '../../components/carousel';
+import { SlideDefault, state } from '../carousel';
 import { getItemsFromAPI } from '@/components/mockup';
 import {  Memo } from '@legendapp/state/react';
 import { useRef, useState, useEffect, useLayoutEffect } from 'react';
