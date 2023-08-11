@@ -7,8 +7,9 @@ import { marqueeObject } from './marqueeObject';
 import { sliderObj } from './sliderObj';
 import { useGesture } from '@use-gesture/react';
 
-export function SliderMarquee( { items } ) {
+export function SliderMarquee( { items, showLogger=false } ) {
 
+    const mainRef = useRef(null);
     const wrapper = useRef(null);
     const loggerRef = useRef(null);
     const scroll = new scrollObj();
@@ -30,7 +31,6 @@ export function SliderMarquee( { items } ) {
 
     function onDragEvent( state ) {
         if ( state.dragging ) {
-            // TODO: decay and speed logics to be refactored according to device width
             let mult = scroll.dragMultiply.find(( screen, i )=> screen.width <= window.innerWidth ).by;
             speed += state.delta[0] * (mult || 0.00025);
             marquee.direction(Math.sign( -state.delta[0] ));
@@ -50,13 +50,14 @@ export function SliderMarquee( { items } ) {
             speed *= scroll.decay;
             items.forEach((_,i) => {
                 items[i].style.left = `${calcPos( item.width, i , position )}px`;
-
-                logger([
-                    { label: "position", value: position },
-                    { label: "speed", value: speed },
-                    { label: "mspeed", value: marquee.speed() },
-                    { label: "mdirection", value: marquee.direction },
-                ], loggerRef )
+                if( showLogger ) {
+                    logger([
+                        { label: "position", value: position },
+                        { label: "speed", value: speed },
+                        { label: "mspeed", value: marquee.speed() },
+                        { label: "mdirection", value: marquee.direction },
+                    ], loggerRef )
+                }
 
             })
 
@@ -64,7 +65,9 @@ export function SliderMarquee( { items } ) {
         }
 
         function stageItems() {
-            item.width = window.innerWidth;
+            mainRef.current.style.height = `${window.innerHeight}px`;
+            mainRef.current.style.width = `${window.innerWidth}px`;
+            item.width = window.innerWidth / item.perScreen ;
             item.height = window.innerHeight;
             items = document.querySelectorAll('.scroll-item');
             wrapperWidth = item.width * items.length - 1;
@@ -108,42 +111,44 @@ export function SliderMarquee( { items } ) {
 
     return <>
         <div id="main-container"
-            className="relative w-screen h-screen overflow-hidden bg-zinc-100"
+            className="relative w-screen overflow-hidden"
+            ref={ mainRef }
+            style={{ height: window.innerHeight }}
             >
-            <div className="absolute left-0 -translate-y-1/2 top-1/2 "
-                 ref = { wrapper }
-                 {...bind()}
-                 style={{touchAction:"none"}}
+            <div
+                className="absolute left-0 -translate-y-1/2 top-1/2"
+                ref = { wrapper }
+                style={{touchAction:"none"}}
+                {...bind()}
             >
-                { items.map(( scrollItem, i) => {
-                    return <div key={i}
-                                className="absolute scroll-item"
-                                style={{
-                                        left: i * item.width,
-                                        width: item.width,
-                                        height: item.height,
-                                        top: "50%",
-                                        transform:"translateY(-50%)",
-                                        zIndex: 1000-i,
-                                }}
-                                >
-                                <div className="absolute inset-0 overflow-hidden transition-all duration-500 rounded-md hover:scale-105"
-                                    style={ {
-                                        left: 0,
-                                        backgroundImage: `url(${scrollItem})`,
-                                        backgroundSize: `cover`,
-                                        backgroundPosition: `center`,
-                                        backgroundRepeat: `no-repeat`,
-
-                                    }} />
-                            </div>
-                })}
+            { items.map(( scrollItem, i) =>
+                <div key={i}
+                    className="absolute scroll-item"
+                    style={{
+                            left: i * item.width,
+                            width: item.width,
+                            height: item.height,
+                            top: "50%",
+                            transform:"translateY(-50%)",
+                            zIndex: 1000-i,
+                    }}
+                    >
+                    <div className="absolute inset-0 overflow-hidden transition-all duration-500 rounded-md hover:scale-105"
+                        style={ {
+                            left: 0,
+                            backgroundImage: `url(${scrollItem})`,
+                            backgroundSize: `cover`,
+                            backgroundPosition: `center`,
+                            backgroundRepeat: `no-repeat`,
+                        }}
+                    />
+                </div> )}
             </div>
 
+           { showLogger &&
             <div className="fixed grid w-1/2 h-20 p-2 text-black rounded-lg top-5 left-5 bg-zinc-400/80">
                 <div ref={ loggerRef } ></div>
-            </div>
-
+            </div> }
         </div>
     </>
 }

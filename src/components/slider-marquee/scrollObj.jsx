@@ -9,8 +9,10 @@ export function scrollObj() {
             { width: 1920, by: 0.00015 },
             { width: 1440, by: 0.0002 },
             { width: 1024, by: 0.00025 },
-            { width: 768, by: 0.0003 },
-            { width: 320, by: 0.0005 },
+            { width: 768, by: 0.00035 },
+            { width: 640, by: 0.00045 },
+            { width: 480, by: 0.00055 },
+            { width: 320, by: 0.0006 },
         ],
         axis: "x",
     };
