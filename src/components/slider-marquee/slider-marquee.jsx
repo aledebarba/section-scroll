@@ -29,10 +29,10 @@ export function SliderMarquee( { items } ) {
     })
 
     function onDragEvent( state ) {
-        console.log( state )
         if ( state.dragging ) {
             // TODO: decay and speed logics to be refactored according to device width
-            speed += state.delta[0] * 0.00025;
+            let mult = scroll.dragMultiply.find(( screen, i )=> screen.width <= window.innerWidth ).by;
+            speed += state.delta[0] * (mult || 0.00025);
             marquee.direction(Math.sign( -state.delta[0] ));
             marquee.reset();
         }
