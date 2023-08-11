@@ -11,7 +11,7 @@ const Telemetry = () => {
             (log) => setLogs((currLogs) => [...currLogs, log]),
             false
         );
-        return () => Unhook(hookedConsole);
+        return () => { Unhook(hookedConsole) };
     }, []);
 
     return <div className="grid place-content-center fixed w-1/5 p-4 border-4 border-solid pointer-events-auto border-teal-500/20 right-16 top-10 h-[80vh] bg-zinc-950 rounded-2xl overflow-hidden">
