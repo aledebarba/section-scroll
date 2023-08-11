@@ -40,71 +40,77 @@ export function SliderMarquee( { items, showLogger=false } ) {
 
     useEffect(() => {
 
-        let items = document.querySelectorAll('.scroll-item');
-        slider.init( { items, startItem:0, autoplay:true, autoplayDelay:5000, autoplayDirection:1, onSlideChange: () => {} } );
-        stageItems();
-        raf();
+        let eventWheelId = null;
+        let eventResizeId = null;
 
-        function raf() {
-            position += speed - marquee.speed();
-            speed *= scroll.decay;
-            items.forEach((_,i) => {
-                items[i].style.left = `${calcPos( item.width, i , position )}px`;
-                if( showLogger ) {
-                    logger([
-                        { label: "position", value: position },
-                        { label: "speed", value: speed },
-                        { label: "mspeed", value: marquee.speed() },
-                        { label: "mdirection", value: marquee.direction },
-                    ], loggerRef )
-                }
+        if( window !== undefined ) {
+            let items = document.querySelectorAll('.scroll-item');
+            slider.init( { items, startItem:0, autoplay:true, autoplayDelay:5000, autoplayDirection:1, onSlideChange: () => {} } );
+            stageItems();
+            raf();
 
-            })
+            function raf() {
+                position += speed - marquee.speed();
+                speed *= scroll.decay;
+                items.forEach((_,i) => {
+                    items[i].style.left = `${calcPos( item.width, i , position )}px`;
+                    if( showLogger ) {
+                        logger([
+                            { label: "position", value: position },
+                            { label: "speed", value: speed },
+                            { label: "mspeed", value: marquee.speed() },
+                            { label: "mdirection", value: marquee.direction },
+                        ], loggerRef )
+                    }
 
-            window.requestAnimationFrame(raf);
-        }
+                })
 
-        function stageItems() {
-            mainRef.current.style.height = `${window.innerHeight}px`;
-            mainRef.current.style.width = `${window.innerWidth}px`;
-            item.width = window.innerWidth / item.perScreen ;
-            item.height = window.innerHeight;
-            items = document.querySelectorAll('.scroll-item');
-            wrapperWidth = item.width * items.length - 1;
-            items.forEach((o,i) => {
-                items[i].style.width = `${item.width}px`;
-                items[i].style.height = `${item.height}px`;
-                items[i].style.left = `${calcPos( item.width, i, position )}px`;
-            })
-            wrapper.current.style.width = `${wrapperWidth}px`;
-            wrapper.current.style.height = `${item.height}px`;
-        }
+                window.requestAnimationFrame(raf);
+            }
 
-        function calcPos( elWidth, i, position ) {
-            let pos = ( elWidth * i ) + ( (position % obj.length) * elWidth );
-            let newPos = ( ( pos + wrapperWidth + elWidth ) % wrapperWidth - elWidth );
-            return newPos;
-        }
+            function stageItems() {
+                mainRef.current.style.height = `${window.innerHeight}px`;
+                mainRef.current.style.width = `${window.innerWidth}px`;
+                item.width = window.innerWidth / item.perScreen ;
+                item.height = window.innerHeight;
+                items = document.querySelectorAll('.scroll-item');
+                wrapperWidth = item.width * items.length - 1;
+                items.forEach((o,i) => {
+                    items[i].style.width = `${item.width}px`;
+                    items[i].style.height = `${item.height}px`;
+                    items[i].style.left = `${calcPos( item.width, i, position )}px`;
+                })
+                wrapper.current.style.width = `${wrapperWidth}px`;
+                wrapper.current.style.height = `${item.height}px`;
+                marquee.reset();
+            }
 
-       /* events listeners */
+            function calcPos( elWidth, i, position ) {
+                let pos = ( elWidth * i ) + ( (position % obj.length) * elWidth );
+                let newPos = ( ( pos + wrapperWidth + elWidth ) % wrapperWidth - elWidth );
+                return newPos;
+            }
 
-        const eventWheelId = window.addEventListener('wheel', (e) => {
-            let delta = (e.deltaY * wheel.useY * wheel.yFactor ) + (e.deltaX * wheel.useX * wheel.xFactor * wheel.xDirection )
-            speed +=  Math.abs( ( delta ) / 1000 ) < 0.05
+        /* events listeners */
+
+            eventWheelId = window.addEventListener('wheel', (e) => {
+                let delta = (e.deltaY * wheel.useY * wheel.yFactor ) + (e.deltaX * wheel.useX * wheel.xFactor * wheel.xDirection )
+                speed +=  Math.abs( ( delta ) / 1000 ) < 0.05
                         ? delta * 0.002
                         : delta * 0.00015;
-            marquee.direction(Math.sign( -delta ));
-            marquee.reset();
-        })
+                marquee.direction(Math.sign( -delta ));
+                marquee.reset();
+            })
 
-        const eventResizeId = window.addEventListener('resize', (e) => {
-            stageItems();
-        })
+            eventResizeId = window.addEventListener('resize', (e) => {
+                stageItems();
+            })
+
+        }
 
         return () => {
-            // unmount
-            window.removeEventListener("wheel", eventWheelId);
-            window.removeEventListener("resize", eventResizeId);
+            eventWheelId  &&  window.removeEventListener("wheel", eventWheelId );
+            eventResizeId &&  window.removeEventListener("resize", eventResizeId );
         }
 
     },[]);
@@ -113,7 +119,6 @@ export function SliderMarquee( { items, showLogger=false } ) {
         <div id="main-container"
             className="relative w-screen overflow-hidden"
             ref={ mainRef }
-            style={{ height: window.innerHeight }}
             >
             <div
                 className="absolute left-0 -translate-y-1/2 top-1/2"
