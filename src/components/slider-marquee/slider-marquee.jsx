@@ -1,13 +1,14 @@
 "use client"
 import { useEffect, useRef } from 'react';
+import { useGesture } from '@use-gesture/react';
 import { scrollObj } from './scrollObj';
 import { itemObj } from './itemObj';
 import { wheelObj } from './wheelObj';
 import { marqueeObject } from './marqueeObject';
-import { sliderObj } from './sliderObj';
-import { useGesture } from '@use-gesture/react';
+import { SliderObj } from './sliderObj';
+import { AnimationFrame } from './animationFrame';
 
-export function SliderMarquee( { items, showLogger=false } ) {
+export function SliderMarquee( { showLogger=false, slider:displaySliders, children, ...props } ) {
 
     const mainRef = useRef(null);
     const wrapper = useRef(null);
@@ -16,19 +17,27 @@ export function SliderMarquee( { items, showLogger=false } ) {
     const item   = new itemObj();
     const wheel  = new wheelObj();
     const marquee = new marqueeObject();
-    const slider  = new sliderObj();
-
+    const slider  = new SliderObj();
 
     let speed = 0;
     let position = 0;
-
-    let obj = Array(items.length).fill({dist:0});
+    let items;
+    let obj = Array(children.length).fill({dist:0});
     let wrapperWidth = item.width * obj.length - 1;
 
-    const bind = useGesture({
-        onDrag: (state) => onDragEvent(state),
-    })
-
+    // handles gestures
+    const gesturesSharedConfig = {}
+    const gesturesConfig = {
+        ...gesturesSharedConfig,
+        drag: {
+            target: wrapper,
+            preventDefault: true,
+        }
+    }
+    const bind = useGesture(
+        { onDrag: (state) => onDragEvent(state) },
+        gesturesConfig,
+    )
     function onDragEvent( state ) {
         if ( state.dragging ) {
             let mult = scroll.dragMultiply.find(( screen, i )=> screen.width <= window.innerWidth ).by;
@@ -42,30 +51,56 @@ export function SliderMarquee( { items, showLogger=false } ) {
 
         let eventWheelId = null;
         let eventResizeId = null;
+        let startTime, endTime, duration;
 
         if( window !== undefined ) {
-            let items = document.querySelectorAll('.scroll-item');
-            slider.init( { items, startItem:0, autoplay:true, autoplayDelay:5000, autoplayDirection:1, onSlideChange: () => {} } );
-            stageItems();
-            raf();
+            items = wrapper.current.querySelectorAll('.slider-marquee-item');
 
-            function raf() {
-                position += speed - marquee.speed();
-                speed *= scroll.decay;
-                items.forEach((_,i) => {
-                    items[i].style.left = `${calcPos( item.width, i , position )}px`;
-                    if( showLogger ) {
-                        logger([
-                            { label: "position", value: position },
-                            { label: "speed", value: speed },
-                            { label: "mspeed", value: marquee.speed() },
-                            { label: "mdirection", value: marquee.direction },
-                        ], loggerRef )
+            if( displaySliders && !slider.started ) {
+                slider.init( {
+                    items:items,
+                    autoplay:true,
+                    autoplayDelay: 5000,
+                    onStart:( from, to )=>{
+                        startTime = Date.now();
+                    },
+                    onSlideChange: ( from, to )=>{
+                        //console.log(`on start from ${from} to ${to} timestamp = ${Date.now()}`)
+                        endTime = Date.now();
+                        duration = endTime - startTime;
+                        logger( [{label:"duration", value:duration}], loggerRef );
+                        startTime = Date.now();
                     }
 
-                })
+                });
+            }
+            stageItems();
 
-                window.requestAnimationFrame(raf);
+            let animations = new AnimationFrame( 60, runAnimations )
+            animations.start();
+
+            function runAnimations( delta ) {
+                if( displaySliders ) {
+                    position = slider.updatePosition( position );
+                    speed = 0;
+                } else {
+                    position += speed - marquee.speed();
+                    speed *= scroll.decay;
+                }
+
+                items.forEach((_,i) => {
+                    items[i].style.left = `${calcPos( item.width, i , position )}px`;
+                    // if( showLogger ) {
+                    //     logger([
+                    //         { label: "position", value: position },
+                    //         { label: "speed", value: speed },
+                    //         { label: "mspeed", value: marquee.speed() },
+                    //         { label: "mdirection", value: marquee.direction },
+                    //     ], loggerRef )
+                    // }
+
+                })
+               // window.requestAnimationFrame(raf);
             }
 
             function stageItems() {
@@ -73,7 +108,6 @@ export function SliderMarquee( { items, showLogger=false } ) {
                 mainRef.current.style.width = `${window.innerWidth}px`;
                 item.width = window.innerWidth / item.perScreen ;
                 item.height = window.innerHeight;
-                items = document.querySelectorAll('.scroll-item');
                 wrapperWidth = item.width * items.length - 1;
                 items.forEach((o,i) => {
                     items[i].style.width = `${item.width}px`;
@@ -125,29 +159,8 @@ export function SliderMarquee( { items, showLogger=false } ) {
                 ref = { wrapper }
                 style={{touchAction:"none"}}
                 {...bind()}
-            >
-            { items.map(( scrollItem, i) =>
-                <div key={i}
-                    className="absolute scroll-item"
-                    style={{
-                            left: i * item.width,
-                            width: item.width,
-                            height: item.height,
-                            top: "50%",
-                            transform:"translateY(-50%)",
-                            zIndex: 1000-i,
-                    }}
-                    >
-                    <div className="absolute inset-0 overflow-hidden transition-all duration-500 rounded-md hover:scale-105"
-                        style={ {
-                            left: 0,
-                            backgroundImage: `url(${scrollItem})`,
-                            backgroundSize: `cover`,
-                            backgroundPosition: `center`,
-                            backgroundRepeat: `no-repeat`,
-                        }}
-                    />
-                </div> )}
+                >
+                { children }
             </div>
 
            { showLogger &&
@@ -163,3 +176,6 @@ function logger( info, ref ) {
     ref.current.innerHTML = `<div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 2px; grid-template-rows: 2.2rem 2.2rem; place-content: center;">${divmap}</div>`
 }
 
+export function SlideItem( { children, className="", ...props } ) {
+    return <div className={`absolute slider-marquee-item z-1000 ${className}`} {...props} >{children}</div>
+}
